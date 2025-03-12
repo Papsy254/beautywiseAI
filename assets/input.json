@@ -1,0 +1,9 @@
+{
+    "instances": [
+      {
+        "image_bytes": { "b64": "your-base64-encoded-image" },
+        "key": "test-image"
+      }
+    ]
+  }
+  
