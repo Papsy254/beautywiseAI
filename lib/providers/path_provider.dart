@@ -9,8 +9,8 @@ class PathProviderService {
       final Directory dir = await getApplicationDocumentsDirectory();
       debugPrint("Application Directory: ${dir.path}");
       return dir;
-    } catch (e) {
-      debugPrint("Error getting application directory: $e");
+    } catch (e, stackTrace) {
+      debugPrint("Error: $e\n$stackTrace");
       throw Exception("Failed to get application directory: $e");
     }
   }
@@ -21,8 +21,8 @@ class PathProviderService {
       final Directory dir = await getTemporaryDirectory();
       debugPrint("Temporary Directory: ${dir.path}");
       return dir;
-    } catch (e) {
-      debugPrint("Error getting temporary directory: $e");
+    } catch (e, stackTrace) {
+      debugPrint("Error: $e\n$stackTrace");
       throw Exception("Failed to get temporary directory: $e");
     }
   }
@@ -30,16 +30,19 @@ class PathProviderService {
   /// Get the external storage directory (Android only)
   Future<Directory?> getExternalStorage() async {
     try {
-      final Directory? dir = await getExternalStorageDirectory();
-      if (dir != null) {
-        debugPrint("External Storage Directory: ${dir.path}");
-      } else {
-        debugPrint("External storage directory not available.");
+      if (Platform.isAndroid) {
+        final Directory? dir = await getExternalStorageDirectory();
+        if (dir != null) {
+          debugPrint("External Storage Directory: ${dir.path}");
+        } else {
+          debugPrint("External storage directory not available.");
+        }
+        return dir;
       }
-      return dir;
-    } catch (e) {
-      debugPrint("Error getting external storage directory: $e");
-      return null; // Avoid throwing an error, as this is optional
+      return null;
+    } catch (e, stackTrace) {
+      debugPrint("Error: $e\n$stackTrace");
+      return null; // Graceful fallback
     }
   }
 
@@ -49,12 +52,14 @@ class PathProviderService {
       final Directory appDir = await getAppDirectory();
       final Directory customDir = Directory('${appDir.path}/$folderName');
 
-      await customDir.create(recursive: true);
-      debugPrint("Custom Directory Created: ${customDir.path}");
+      if (!customDir.existsSync()) {
+        await customDir.create(recursive: true);
+        debugPrint("Custom Directory Created: ${customDir.path}");
+      }
 
       return customDir;
-    } catch (e) {
-      debugPrint("Error creating custom directory: $e");
+    } catch (e, stackTrace) {
+      debugPrint("Error: $e\n$stackTrace");
       throw Exception("Failed to create custom directory: $e");
     }
   }

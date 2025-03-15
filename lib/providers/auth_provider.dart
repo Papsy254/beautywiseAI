@@ -1,14 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:beautywise_ai/providers/auth_provider.dart';
-import '../providers/auth_provider.dart';
-import 'package:beautywise_ai/ui/screens/home_screen.dart';
+import 'package:provider/provider.dart';
+import '../ui/screens/home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  _AuthScreenState createState() => _AuthScreenState();
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
@@ -23,29 +22,29 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(_isLogin ? "Login" : "Register")),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (!_isLogin) // Show username field only during registration
               TextField(
                 controller: _usernameController,
-                decoration: InputDecoration(labelText: "Username"),
+                decoration: const InputDecoration(labelText: "Username"),
               ),
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(labelText: "Email"),
+              decoration: const InputDecoration(labelText: "Email"),
               keyboardType: TextInputType.emailAddress,
             ),
             TextField(
               controller: _passwordController,
-              decoration: InputDecoration(labelText: "Password"),
+              decoration: const InputDecoration(labelText: "Password"),
               obscureText: true,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (authProvider.isLoading)
-              CircularProgressIndicator()
+              const CircularProgressIndicator()
             else
               ElevatedButton(
                 onPressed: () async {
@@ -62,11 +61,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     );
                   }
 
-                  if (authProvider.user != null) {
-                    // Navigate to Home if login successful
+                  if (authProvider.user != null && mounted) {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => HomeScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ),
                     );
                   }
                 },
@@ -75,7 +75,7 @@ class _AuthScreenState extends State<AuthScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _isLogin = !_isLogin; // Toggle between login & register
+                  _isLogin = !_isLogin;
                 });
               },
               child: Text(
@@ -84,10 +84,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     : "Already have an account? Login",
               ),
             ),
-            if (authProvider.errorMessage != null)
+            if (authProvider.errorMessage?.isNotEmpty ?? false)
               Text(
                 authProvider.errorMessage!,
-                style: TextStyle(color: Colors.red),
+                style: const TextStyle(color: Colors.red),
               ),
           ],
         ),

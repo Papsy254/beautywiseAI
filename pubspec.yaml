@@ -1,6 +1,6 @@
 name: beautywise_ai
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -18,7 +18,7 @@ dependencies:
   file_picker: ^9.0.2
   image_picker: ^1.1.2
   flutter_dotenv: ^5.2.1
-  image: ^4.1.3  # Used for image processing
+  image: ^4.1.3 # Used for image processing
   firebase_ml_model_downloader: 0.3.3+2
   shared_preferences: ^2.5.2
   camera: ^0.10.5
@@ -27,6 +27,8 @@ dependencies:
   firebase_analytics: ^11.4.4
   google_mlkit_face_detection: ^0.9.0
   camera_web: ^0.3.5
+  provider: ^6.1.2
+  firebase_ml_vision: 0.12.0+3
 
 dev_dependencies:
   flutter_test:

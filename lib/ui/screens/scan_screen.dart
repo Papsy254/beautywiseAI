@@ -1,100 +1,101 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_ml_model_downloader/firebase_ml_model_downloader.dart';
+import 'package:google_ml_kit/google_ml_kit.dart'; // Import google_ml_kit package
+import 'package:beautywise_ai/ui/screens/recommendations_screen.dart'; // Import the recommendations screen
 
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+  final File imageFile;
+
+  const ScanScreen({super.key, required this.imageFile});
 
   @override
-  State<ScanScreen> createState() => _ScanScreenState();
+  _ScanScreenState createState() => _ScanScreenState();
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  final ImagePicker _picker = ImagePicker();
-  File? _selectedImage;
-  String skinType = "Not Analyzed";
-  bool isLoading = false;
+  late List<Face> faces;
+  late FaceDetector faceDetector;
+  String skinType = 'Not Analyzed';
+  bool isLoading = true;
 
-  // Pick Image (Gallery/Camera)
-  Future<void> pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
-
-      // Run AutoML Analysis
-      await analyzeImage(_selectedImage!);
-    }
+  @override
+  void initState() {
+    super.initState();
+    faceDetector = GoogleMlKit.vision.faceDetector();
+    detectFaces();
   }
 
-  // Run Firebase AutoML Model
-  Future<void> analyzeImage(File image) async {
+  // Detect faces in the image
+  Future<void> detectFaces() async {
+    final inputImage = InputImage.fromFile(widget.imageFile);
+    final List<Face> detectedFaces = await faceDetector.processImage(
+      inputImage,
+    );
+
     setState(() {
-      isLoading = true;
+      faces = detectedFaces;
+      isLoading = false; // Face detection is complete
     });
 
-    try {
-      final model = await FirebaseModelDownloader.instance.getModel(
-        "skin_scan_model", // Ensure the model name is correct
-        FirebaseModelDownloadType.localModel,
-      );
+    // After detection, send the result to skin type analysis (further processing)
+    analyzeSkinType();
+  }
 
-      // Simulating model inference (Replace with real MLKit API when available)
-      await Future.delayed(Duration(seconds: 2));
-
-      setState(() {
-        skinType = "Oily Skin"; // Example result
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Analysis Complete: $skinType")));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+  // Analyze skin type based on detected features (using custom rules or a simple model)
+  void analyzeSkinType() {
+    if (faces.isNotEmpty) {
+      // Simulate a skin type result based on the number of faces detected
+      skinType =
+          faces.length == 1
+              ? 'Oily Skin'
+              : 'Normal Skin'; // Example classification
     }
+
+    // Navigate to the recommendations screen and pass the skin type
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => RecommendationResultScreen(
+              faceTypeIndex: skinType == 'Oily Skin' ? 0 : 3,
+            ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    faceDetector.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Skin Scan")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _selectedImage == null
-                ? const Text("No Image Selected")
-                : Image.file(_selectedImage!, height: 200),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.camera),
-                  onPressed: () => pickImage(ImageSource.camera),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.image),
-                  onPressed: () => pickImage(ImageSource.gallery),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+      appBar: AppBar(title: Text("Scan Results")),
+      body: Center(
+        child:
             isLoading
-                ? const CircularProgressIndicator()
-                : Text(
-                  "Detected: $skinType",
-                  style: const TextStyle(fontSize: 18),
+                ? CircularProgressIndicator() // Show loading indicator while face detection happens
+                : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.file(widget.imageFile), // Display the image
+                    SizedBox(height: 20),
+                    Text(
+                      "Detected ${faces.length} face(s)",
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Skin Type: $skinType",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-          ],
-        ),
       ),
     );
   }

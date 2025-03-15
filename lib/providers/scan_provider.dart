@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/scan_provider.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});

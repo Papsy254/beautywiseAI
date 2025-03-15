@@ -21,8 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
   User? user;
   String userName = "Loading...";
-  File? _selectedImage; // For Mobile
-  Uint8List? _webImage; // For Web
+  File? _selectedImage;
+  Uint8List? _webImage;
+  String detectedSkinType = "";
+  double confidenceScore = 0.0;
+  List<String> recommendations = [];
 
   @override
   void initState() {
@@ -56,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (e) {
-      print("Error fetching user data: $e");
       setState(() {
         userName = "User";
       });
@@ -73,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 📷 Pick image from gallery (Mobile) / File Picker (Web)
   Future<void> pickImage() async {
     if (kIsWeb) {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -81,8 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       if (result != null) {
         setState(() {
-          _webImage = result.files.first.bytes; // Store web image data
-          _selectedImage = null; // Ensure mobile image is cleared
+          _webImage = result.files.first.bytes;
+          _selectedImage = null;
         });
       }
     } else {
@@ -90,13 +91,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
-          _webImage = null; // Ensure web image is cleared
+          _webImage = null;
         });
       }
     }
   }
 
-  // 📷 Capture image using Camera (Mobile) / File Picker (Web)
   Future<void> captureImage() async {
     if (kIsWeb) {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -119,26 +119,80 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🔍 Simulate scanning process
   Future<void> scanImage() async {
-    if (_selectedImage == null && _webImage == null) return;
+    if (_selectedImage == null && _webImage == null) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text("Error"),
+              content: const Text("No image uploaded. Please upload an image."),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+      );
+      return;
+    }
 
-    // Simulating AI scan (replace with actual scan logic)
     await Future.delayed(const Duration(seconds: 2));
 
-    // Show results in a pop-up
+    setState(() {
+      detectedSkinType = "Oily"; // Simulated result
+      confidenceScore = 92.5; // Simulated score
+      recommendations = [
+        "Use an oil-free moisturizer",
+        "Apply a clay mask weekly",
+        "Avoid harsh scrubs",
+        "Drink more water",
+      ];
+    });
+
+    showResultsDialog();
+  }
+
+  void showResultsDialog() {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text("Scan Results"),
-            content: const Text(
-              "AI scan completed! Skin type: Normal, Score: 87%",
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Skin Type: $detectedSkinType",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text("Confidence Score: $confidenceScore%"),
+                const SizedBox(height: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:
+                      recommendations.map((rec) {
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(rec),
+                          ),
+                        );
+                      }).toList(),
+                ),
+              ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
+                child: const Text("Back to Home"),
               ),
             ],
           ),
@@ -182,8 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Image Display Area (Fixed Size)
           Center(
             child: Column(
               children: [
@@ -194,84 +246,57 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  padding: const EdgeInsets.all(10),
                   child:
                       _selectedImage != null
-                          ? ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              _selectedImage!,
-                              width: 250,
-                              height: 250,
-                              fit: BoxFit.cover,
-                            ),
-                          )
+                          ? Image.file(_selectedImage!, fit: BoxFit.cover)
                           : (_webImage != null
-                              ? ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.memory(
-                                  _webImage!,
-                                  width: 250,
-                                  height: 250,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
+                              ? Image.memory(_webImage!, fit: BoxFit.cover)
                               : const Center(
-                                child: Text(
-                                  "No image selected.",
-                                  textAlign: TextAlign.center,
-                                ),
+                                child: Text("No image selected."),
                               )),
                 ),
                 const SizedBox(height: 10),
-
-                // Buttons below image preview
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: scanImage,
-                      child: const Text("Scan Here"),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedImage = null;
-                          _webImage = null;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                    IconButton(
+                      icon: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.red,
+                        size: 30,
                       ),
-                      child: const Text("Remove"),
+                      onPressed: captureImage,
+                    ),
+                    const SizedBox(width: 20),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.photo_library,
+                        color: Colors.blue,
+                        size: 30,
+                      ),
+                      onPressed: pickImage,
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Image selection buttons
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.image, size: 30),
-                  onPressed: pickImage,
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: scanImage,
+                  child: const Text("Scan Here"),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.camera_alt, size: 30),
-                  onPressed: captureImage,
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedImage = null;
+                      _webImage = null;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text("Remove"),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
