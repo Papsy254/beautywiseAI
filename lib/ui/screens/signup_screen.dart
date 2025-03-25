@@ -23,6 +23,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true; // Toggle for password visibility
+  bool _obscureConfirmPassword = true; // Toggle for confirm password visibility
 
   void registerUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -53,11 +55,37 @@ class _SignupScreenState extends State<SignupScreen> {
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      if (e.code == 'email-already-in-use') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Email already exists",
+              style: TextStyle(color: Colors.red),
+            ),
+            backgroundColor: Colors.white,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.message ?? "An error occurred",
+              style: TextStyle(color: Colors.red),
+            ),
+            backgroundColor: Colors.white,
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString(), style: TextStyle(color: Colors.red)),
+          backgroundColor: Colors.white,
+        ),
+      );
     }
   }
 
@@ -107,7 +135,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 _buildTextField(
                   label: "Password",
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
+                  isPasswordField: true,
                   validator: (value) {
                     if (value!.isEmpty) return "Password is required";
                     if (value.length < 6) {
@@ -119,7 +148,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 _buildTextField(
                   label: "Confirm Password",
                   controller: _confirmPasswordController,
-                  obscureText: true,
+                  obscureText: _obscureConfirmPassword,
+                  isPasswordField: true,
                   validator: (value) {
                     if (value!.isEmpty) return "Confirm password is required";
                     if (value != _passwordController.text) {
@@ -181,6 +211,7 @@ class _SignupScreenState extends State<SignupScreen> {
     required String label,
     required TextEditingController controller,
     bool obscureText = false,
+    bool isPasswordField = false,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -200,6 +231,25 @@ class _SignupScreenState extends State<SignupScreen> {
             borderSide: BorderSide(color: Colors.red, width: 1.5),
             borderRadius: BorderRadius.circular(10),
           ),
+          // Show/hide password icon for password fields
+          suffixIcon:
+              isPasswordField
+                  ? IconButton(
+                    icon: Icon(
+                      obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        if (label == "Password") {
+                          _obscurePassword = !_obscurePassword;
+                        } else {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        }
+                      });
+                    },
+                  )
+                  : null,
         ),
       ),
     );

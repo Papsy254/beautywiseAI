@@ -138,20 +138,61 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      var result = await getSkinTypeFromAIModel(); // AI model call
+      setState(() {
+        detectedSkinType =
+            result['skinType']; // The skin type returned by the AI model
+        confidenceScore =
+            result['confidenceScore']; // The confidence score returned by the AI model
+        recommendations = getRecommendations(
+          detectedSkinType,
+        ); // Fetch recommendations based on detected skin type
+      });
 
-    setState(() {
-      detectedSkinType = "Oily"; // Simulated result
-      confidenceScore = 92.5; // Simulated score
-      recommendations = [
+      showResultsDialog();
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getSkinTypeFromAIModel() async {
+    // Simulate an AI model result
+    return {'skinType': 'Oily', 'confidenceScore': 92.5};
+  }
+
+  List<String> getRecommendations(String skinType) {
+    if (skinType == 'Oily') {
+      return [
         "Use an oil-free moisturizer",
         "Apply a clay mask weekly",
         "Avoid harsh scrubs",
         "Drink more water",
       ];
-    });
-
-    showResultsDialog();
+    } else if (skinType == 'Dry') {
+      return [
+        "Use a rich, hydrating moisturizer",
+        "Avoid hot water on your face",
+        "Use a gentle cleanser",
+        "Drink plenty of water to hydrate your skin",
+      ];
+    } else if (skinType == 'Sensitive') {
+      return [
+        "Use fragrance-free, gentle products",
+        "Avoid harsh exfoliants",
+        "Limit sun exposure",
+        "Use minimal products to avoid irritation",
+      ];
+    } else if (skinType == 'Normal') {
+      return [
+        "Maintain a balanced skincare routine",
+        "Use sunscreen daily",
+        "Stay hydrated",
+        "Consider using a mild cleanser",
+      ];
+    } else {
+      return ["No recommendations available for this skin type."];
+    }
   }
 
   void showResultsDialog() {
@@ -216,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const CircleAvatar(
                       radius: 24,
                       backgroundColor: Colors.red,
-                      backgroundImage: AssetImage('assets/profile.jpg'),
+                      child: Icon(Icons.person, color: Colors.white),
                     ),
                     const SizedBox(width: 10),
                     Text(

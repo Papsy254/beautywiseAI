@@ -2,6 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// NEW: Added RecommendationService class
+class RecommendationService {
+  // This static method is used by RecommendationHomeScreen
+  static Future<List<String>> getRecommendations() async {
+    try {
+      // Simulate fetching a list of recommendations.
+      // Replace this with your actual Firestore query or API call.
+      await Future.delayed(Duration(seconds: 2));
+      return ["Use a balanced diet", "Stay hydrated", "Use sunscreen"];
+    } catch (e) {
+      print("Error fetching recommendations: $e");
+      return [];
+    }
+  }
+
+  // This static method is used by RecommendationResultScreen to fetch recommendations by skin type.
+  static Future<Map<String, dynamic>> getRecommendationsBySkinType(
+    String skinType,
+  ) async {
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance
+              .collection("recommendations")
+              .where("faceType", isEqualTo: skinType)
+              .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return {
+          'foods': ['No food recommendations available'],
+          'beauty_products': ['No beauty products available'],
+        };
+      }
+
+      var recommendation =
+          querySnapshot.docs.first.data() as Map<String, dynamic>;
+      return {
+        'foods': recommendation['foods'] ?? ['No food recommendations'],
+        'beauty_products':
+            recommendation['beauty_products'] ?? ['No beauty products'],
+      };
+    } catch (e) {
+      print("Error fetching recommendations by skin type: $e");
+      return {
+        'foods': ['Error fetching food recommendations'],
+        'beauty_products': ['Error fetching beauty products'],
+      };
+    }
+  }
+}
+
 class RecommendationResultScreen extends StatelessWidget {
   final int faceTypeIndex;
   final List<String> faceTypes = [
@@ -55,33 +105,10 @@ class RecommendationResultScreen extends StatelessWidget {
 
   Future<Map<String, dynamic>> getRecommendations(String faceType) async {
     try {
-      // Fetch data based on faceType, and any other dynamic parameters (age, sensitivity, etc.)
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance
-              .collection("recommendations")
-              .where("faceType", isEqualTo: faceType)
-              .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        return {
-          'foods': ['No food recommendations available'],
-          'beauty_products': ['No beauty products available'],
-        };
-      }
-
-      var recommendation =
-          querySnapshot.docs.first.data() as Map<String, dynamic>;
-      return {
-        'foods': recommendation['foods'] ?? ['No food recommendations'],
-        'beauty_products':
-            recommendation['beauty_products'] ?? ['No beauty products'],
-      };
+      return await RecommendationService.getRecommendationsBySkinType(faceType);
     } catch (e) {
       print("Error fetching recommendations: $e");
-      return {
-        'foods': ['Error fetching food recommendations'],
-        'beauty_products': ['Error fetching beauty products'],
-      };
+      return {}; // Return an empty map if there's an error
     }
   }
 }
@@ -96,7 +123,7 @@ class RecommendationHomeScreen extends StatefulWidget {
 
 class _RecommendationHomeScreenState extends State<RecommendationHomeScreen> {
   List<String> recommendations = [];
-  bool isLoading = true; // Added to manage loading state
+  bool isLoading = true; // Manage loading state
 
   @override
   void initState() {
@@ -106,6 +133,7 @@ class _RecommendationHomeScreenState extends State<RecommendationHomeScreen> {
 
   Future<void> loadRecommendations() async {
     try {
+      // Now calls the static method from RecommendationService
       List<String> fetched = await RecommendationService.getRecommendations();
 
       if (mounted) {
@@ -125,7 +153,7 @@ class _RecommendationHomeScreenState extends State<RecommendationHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Recommendations")),
+      appBar: AppBar(title: Text("Recommendations")),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator()) // Loader
@@ -193,7 +221,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Your AI Beauty Recommendations")),
+      appBar: AppBar(title: Text("Your AI Beauty Recommendations")),
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator()) // Loader

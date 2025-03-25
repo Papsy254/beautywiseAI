@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "113645051931",
+    "firebase_url": "https://beautywise-ai-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "beautywise-ai",
+    "storage_bucket": "beautywise-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113645051931:android:a5b50b4a14fc67b5e798be",
+        "android_client_info": {
+          "package_name": "com.example.beautywise_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiBU67XGIW83s3fCLQv_2EDLAmcueGVrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113645051931:android:2b77ae0644da9920e798be",
+        "android_client_info": {
+          "package_name": "com.example.my_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiBU67XGIW83s3fCLQv_2EDLAmcueGVrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113645051931:android:0882d04206b7adaee798be",
+        "android_client_info": {
+          "package_name": "com.example.skin_sage"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiBU67XGIW83s3fCLQv_2EDLAmcueGVrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

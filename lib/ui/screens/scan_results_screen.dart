@@ -18,7 +18,7 @@ class ScanResultsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Scan Results"),
+        title: Text("Scan Results"),
         backgroundColor: Colors.red,
         centerTitle: true,
       ),

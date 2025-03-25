@@ -16,22 +16,64 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final TextEditingController _emailController = TextEditingController();
+  // Single text field used for both email and phone number
+  final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>(); // For form validation
   bool _isLoading = false;
+  bool _obscurePassword = true; // Toggle for password visibility
+
+  // Checks if the input string is in email format
+  bool _isValidEmail(String input) {
+    return RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(input);
+  }
 
   void loginUser() async {
     if (!_formKey.currentState!.validate()) return; // Validate inputs
 
     setState(() => _isLoading = true);
+    String identifier = _identifierController.text.trim();
+    String password = _passwordController.text.trim();
+    String? emailToUse;
 
     try {
+      // If the identifier is a valid email, use it directly
+      if (_isValidEmail(identifier)) {
+        emailToUse = identifier;
+      } else {
+        // Otherwise, treat it as a phone number and query Firestore for the user
+        QuerySnapshot snapshot =
+            await _firestore
+                .collection("users")
+                .where("phone", isEqualTo: identifier)
+                .get();
+
+        if (snapshot.docs.isEmpty) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Phone number does not exist",
+                style: TextStyle(color: Colors.red),
+              ),
+              backgroundColor: Colors.white,
+            ),
+          );
+          return;
+        }
+        // Assume the first matching document is the correct user
+        Map<String, dynamic> userData =
+            snapshot.docs.first.data() as Map<String, dynamic>;
+        emailToUse = userData["email"];
+      }
+
+      // Proceed to sign in with the emailToUse and password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: emailToUse!,
+        password: password,
       );
 
+      // Check if the user exists in Firestore
       DocumentSnapshot userDoc =
           await _firestore
               .collection("users")
@@ -45,13 +87,48 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("User does not exist in Firestore")),
+          SnackBar(
+            content: Text(
+              "User does not exist in Firestore",
+              style: TextStyle(color: Colors.red),
+            ),
+            backgroundColor: Colors.white,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      // If the error code indicates the user is not found, show a specific message
+      if (e.code == 'user-not-found') {
+        String message =
+            _isValidEmail(identifier)
+                ? "Email does not exist"
+                : "Phone number does not exist";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message, style: TextStyle(color: Colors.red)),
+            backgroundColor: Colors.white,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.message ?? "An error occurred",
+              style: TextStyle(color: Colors.red),
+            ),
+            backgroundColor: Colors.white,
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString(), style: TextStyle(color: Colors.red)),
+          backgroundColor: Colors.white,
+        ),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -73,23 +150,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 30),
+              // This field now accepts either email or phone number
               _buildTextField(
-                "Email Address",
-                controller: _emailController,
+                "Email Address or Phone Number",
+                controller: _identifierController,
                 validator: (value) {
-                  if (value!.isEmpty) return "Email cannot be empty";
-                  if (!RegExp(
-                    r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$',
-                  ).hasMatch(value)) {
-                    return "Enter a valid email";
-                  }
+                  if (value!.isEmpty) return "Field cannot be empty";
                   return null;
                 },
               ),
               _buildTextField(
                 "Password",
                 controller: _passwordController,
-                obscureText: true,
+                obscureText: _obscurePassword,
+                isPasswordField: true,
                 validator: (value) {
                   if (value!.isEmpty) return "Password cannot be empty";
                   if (value.length < 6) {
@@ -168,6 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
     bool obscureText = false,
     required TextEditingController controller,
     String? Function(String?)? validator,
+    bool isPasswordField = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -181,6 +256,21 @@ class _LoginScreenState extends State<LoginScreen> {
           errorBorder: OutlineInputBorder(
             borderSide: BorderSide(color: Colors.red, width: 2.0),
           ),
+          // Show/hide password icon for password fields
+          suffixIcon:
+              isPasswordField
+                  ? IconButton(
+                    icon: Icon(
+                      obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  )
+                  : null,
         ),
       ),
     );
