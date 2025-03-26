@@ -34,7 +34,17 @@ class RecommendationResultScreen extends StatelessWidget {
                 } else if (snapshot.hasError) {
                   return Text("Error: ${snapshot.error}");
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Text("No recommendations available.");
+                  return Column(
+                    children: [
+                      Text("No recommendations available."),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Trigger retry logic
+                        },
+                        child: Text("Try Again"),
+                      ),
+                    ],
+                  );
                 } else {
                   final data = snapshot.data!;
                   return Column(

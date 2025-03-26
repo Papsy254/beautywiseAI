@@ -17,6 +17,8 @@ class _ScanScreenState extends State<ScanScreen> {
   late FaceDetector faceDetector;
   bool isLoading = false;
   String skinType = "No analysis yet";
+  double confidenceScore = 0.0;
+  List<String> recommendations = [];
 
   @override
   void initState() {
@@ -24,7 +26,7 @@ class _ScanScreenState extends State<ScanScreen> {
     faceDetector = GoogleMlKit.vision.faceDetector();
   }
 
-  // **Pick Image from Camera or Gallery**
+  // Pick Image from Camera or Gallery
   Future<void> pickImage(ImageSource source) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
     if (pickedFile != null) {
@@ -37,7 +39,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  // **Detect faces in the image**
+  // Detect faces in the image
   Future<void> detectFaces(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);
     final List<Face> detectedFaces = await faceDetector.processImage(
@@ -45,7 +47,7 @@ class _ScanScreenState extends State<ScanScreen> {
     );
 
     if (detectedFaces.isNotEmpty) {
-      // **Call API to predict skin type**
+      // Call API to predict skin type
       await predictSkinType(imageFile);
     } else {
       setState(() {
@@ -55,7 +57,7 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  // **Send image to API for skin type prediction**
+  // Send image to API for skin type prediction
   Future<void> predictSkinType(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
@@ -85,14 +87,23 @@ class _ScanScreenState extends State<ScanScreen> {
         final data = jsonDecode(response.body);
         setState(() {
           skinType = data['predictions'][0]['skinType'] ?? "Unknown";
+          confidenceScore = data['predictions'][0]['confidenceScore'] ?? 0.0;
+          recommendations = List<String>.from(
+            data['predictions'][0]['recommendations'] ?? [],
+          );
           isLoading = false;
         });
 
-        // Navigate to ScanResultsScreen with the skinType
+        // Navigate to ScanResultsScreen with the skinType, confidenceScore, and recommendations
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ScanResultsScreen(skinType: skinType),
+            builder:
+                (context) => ScanResultsScreen(
+                  skinType: skinType,
+                  confidenceScore: confidenceScore,
+                  recommendations: recommendations,
+                ),
           ),
         );
       } else {
